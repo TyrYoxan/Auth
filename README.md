@@ -1,25 +1,39 @@
 # Auth
 
-Socle backend d'authentification et d'autorisation construit avec Node.js et PostgreSQL.
+Starter backend d'API construit avec Node.js et PostgreSQL, centré sur l'authentification, l'autorisation et les composants techniques communs.
 
-Le projet regroupe les composants nécessaires à la création de comptes, au hachage des mots de passe, à la génération de jetons JWT, à la rotation des jetons de rafraîchissement et au contrôle des accès par rôles.
+L'objectif du dépôt est de servir de base de démarrage pour de futures API. Il rassemble les fondations réutilisables afin d'éviter de reconstruire, pour chaque projet, la gestion des utilisateurs, les jetons JWT, les rôles, la configuration, les réponses HTTP et la journalisation.
+
+## Objectif du starter
+
+`Auth` n'est pas une API métier finale. Le dépôt est destiné à être cloné ou repris au début d'un nouveau projet, puis adapté à son domaine fonctionnel.
+
+Il doit permettre de :
+
+- démarrer les nouvelles API sur une architecture commune ;
+- réutiliser une base d'authentification et d'autorisation ;
+- appliquer les mêmes conventions de configuration et de réponse ;
+- réduire le temps consacré au code technique répétitif ;
+- disposer d'une base de sécurité cohérente entre les projets.
 
 > [!IMPORTANT]
-> Le dépôt est en cours de développement. Il contient les services, les modèles, les middlewares et le schéma SQL, mais pas encore de serveur HTTP fonctionnel, de routeur complet, de script de démarrage ou de tests automatisés. Il ne peut donc pas être utilisé tel quel comme API autonome.
+> Le starter est encore en construction. Le dépôt contient déjà ses principaux composants, mais il n'est pas exécutable immédiatement : le serveur HTTP, le routeur complet, les scripts de démarrage et les tests doivent encore être ajoutés. L'objectif est d'en faire une base prête à cloner, pas une API autonome avec un métier prédéfini.
 
-## Fonctionnalités
+## Fondations disponibles
 
-| Fonctionnalité | État | Détails |
+| Composant | État | Rôle dans les futures API |
 | --- | :---: | --- |
-| Création d'un utilisateur | En cours | Validation Zod, hachage bcrypt et insertion PostgreSQL |
-| Connexion | En cours | Vérification prévue des identifiants et génération d'une paire de jetons |
-| Jeton d'accès | Implémenté | JWT signé en HS256 et valable 15 minutes |
-| Jeton de rafraîchissement | En cours | Persistance, révocation et rotation prévues en base de données |
-| Déconnexion | En cours | Révocation du jeton de rafraîchissement |
-| Authentification des requêtes | Implémenté | Vérification d'un Bearer token via un middleware |
-| Autorisation RBAC | Implémenté | Restriction des actions selon le rôle de l'utilisateur |
-| Routes HTTP | À faire | La route de connexion actuelle est seulement une ébauche |
-| Tests automatisés | À faire | Aucun test n'est encore configuré |
+| Schéma PostgreSQL | Présent | Fournir les tables utilisateurs et jetons de rafraîchissement |
+| Validation Zod | Présente | Valider les données d'inscription et de connexion |
+| Hachage bcrypt | Présent | Protéger les mots de passe avant leur stockage |
+| Jetons JWT | Présents | Générer les jetons d'accès et de rafraîchissement |
+| Middleware d'authentification | Présent | Vérifier le Bearer token d'une requête |
+| Middleware RBAC | Présent | Restreindre une action selon le rôle de l'utilisateur |
+| Gestion des refresh tokens | À stabiliser | Créer, révoquer et renouveler les sessions |
+| Réponses HTTP communes | À stabiliser | Uniformiser les réponses de toutes les routes |
+| Journalisation | À stabiliser | Adapter les logs aux environnements de développement et de production |
+| Serveur et routes HTTP | À ajouter | Exposer les composants sous forme d'API |
+| Tests automatisés | À ajouter | Sécuriser les évolutions du starter et des projets dérivés |
 
 ## Stack technique
 
@@ -31,7 +45,7 @@ Le projet regroupe les composants nécessaires à la création de comptes, au ha
 - Validation des données avec `zod`
 - Chargement de la configuration avec `dotenv`
 
-## Architecture
+## Architecture actuelle
 
 ```text
 Auth/
@@ -59,16 +73,16 @@ Auth/
 └── package-lock.json
 ```
 
-## Rôle des composants
+## Composants réutilisables
 
 ### Service d'authentification
 
-Le fichier `backend/service/auth.service.js` expose quatre opérations :
+Le fichier `backend/service/auth.service.js` expose les opérations destinées à être appelées par les contrôleurs de chaque future API :
 
-| Fonction | Rôle prévu |
+| Fonction | Responsabilité prévue |
 | --- | --- |
 | `register(user)` | Valider les données, hacher le mot de passe et créer l'utilisateur |
-| `login(user)` | Vérifier les identifiants et générer les jetons d'accès et de rafraîchissement |
+| `login(user)` | Vérifier les identifiants et générer les jetons de session |
 | `logout(refreshToken)` | Révoquer un jeton de rafraîchissement |
 | `refresh(refreshToken)` | Vérifier, révoquer puis remplacer un jeton de rafraîchissement |
 
@@ -77,7 +91,7 @@ Le fichier `backend/service/auth.service.js` expose quatre opérations :
 - `auth.middleware.js` extrait le jeton de l'en-tête `Authorization`, le vérifie puis ajoute sa charge utile à `req.user`.
 - `rbac.middleware.js` autorise la requête lorsque le rôle présent dans `req.user` fait partie des rôles acceptés.
 
-Exemple d'utilisation visée après l'ajout d'un routeur HTTP :
+Exemple d'intégration visée dans une future API :
 
 ```js
 router.get(
@@ -88,9 +102,23 @@ router.get(
 );
 ```
 
-## Modèle de données
+### Réponses HTTP
 
-Le script `backend/db/schema.bd.sql` crée les tables suivantes.
+L'utilitaire `utils/apiResponse.js` prévoit un format identique pour toutes les réponses :
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "desc": "Operation successful",
+  "body": {},
+  "errors": null
+}
+```
+
+## Modèle de données fourni
+
+Le fichier `backend/db/schema.bd.sql` fournit un schéma initial que chaque projet peut conserver ou adapter.
 
 ### `users`
 
@@ -113,32 +141,46 @@ Un trigger met automatiquement à jour `updated_at` lors de la modification d'un
 
 La suppression d'un utilisateur entraîne celle de ses jetons de rafraîchissement.
 
-## Installation
+Les rôles, les statuts et les informations utilisateur doivent être adaptés aux besoins de chaque nouvelle API.
+
+## Utiliser le starter
 
 ### Prérequis
 
 - Node.js et npm ;
 - PostgreSQL ;
-- une base de données dédiée au projet.
+- une base de données dédiée au nouveau projet.
 
-### Récupérer le projet
+### Récupérer la base
 
 ```bash
-git clone https://github.com/TyrYoxan/Auth.git
-cd Auth
+git clone https://github.com/TyrYoxan/Auth.git mon-api
+cd mon-api
 npm install
 ```
 
-### Initialiser la base de données
+Après le clonage :
 
-Après avoir créé la base, exécuter le schéma SQL :
+1. modifier le nom, la description et les métadonnées de `package.json` ;
+2. adapter les rôles et le schéma SQL au nouveau domaine ;
+3. définir les variables d'environnement ;
+4. ajouter les routes, contrôleurs, modèles et services métier ;
+5. ajouter les tests propres à l'API ;
+6. configurer son déploiement et son intégration continue.
+
+> [!NOTE]
+> Aucun script de démarrage n'est encore disponible. La commande `npm start` ne fonctionnera qu'après l'ajout du serveur et du script correspondant.
+
+### Initialiser PostgreSQL
+
+Après avoir créé la base de données :
 
 ```bash
 psql --dbname="postgresql://USER:PASSWORD@HOST:5432/DATABASE" \
   --file=backend/db/schema.bd.sql
 ```
 
-## Configuration
+## Configuration actuelle
 
 Le schéma présent dans `config/env.schema.js` attend actuellement les variables suivantes :
 
@@ -154,83 +196,82 @@ Le schéma présent dans `config/env.schema.js` attend actuellement les variable
 | `DATABASE_NAME` | Oui | — | Nom de la base de données |
 | `DATA_PORT` | Oui | `5432` | Port PostgreSQL |
 | `SSL` | Non | — | Configuration SSL prévue |
-| `MAIL_HOST` | Non | — | Hôte du futur service d'e-mail |
-| `MAIL_PORT` | Non | — | Port du futur service d'e-mail |
+| `MAIL_HOST` | Non | — | Hôte d'un éventuel service d'e-mail |
+| `MAIL_PORT` | Non | — | Port d'un éventuel service d'e-mail |
 
 > [!WARNING]
-> Le fichier `.env.example`, le schéma de validation et la construction de la chaîne de connexion ne sont pas encore alignés. Cette partie doit être corrigée avant de pouvoir démarrer l'application.
+> Le fichier `.env.example`, le schéma de validation et la construction de la chaîne de connexion ne sont pas encore alignés. Cette partie doit être corrigée avant que le dépôt puisse servir de starter exécutable.
 
-## Format des réponses HTTP
+## Éléments à personnaliser pour chaque API
 
-L'utilitaire `utils/apiResponse.js` prévoit un format commun pour les réponses :
+Le starter fournit uniquement la couche technique commune. Chaque projet dérivé reste responsable de :
 
-```json
-{
-  "success": true,
-  "status": 200,
-  "desc": "Operation successful",
-  "body": {},
-  "errors": null
-}
-```
+- ses entités et règles métier ;
+- ses routes et contrôleurs ;
+- ses rôles et permissions ;
+- sa stratégie de validation ;
+- ses migrations et données initiales ;
+- sa documentation OpenAPI ;
+- ses tests métier et d'intégration ;
+- sa stratégie de déploiement et de supervision.
 
 ## Sécurité
 
-Les choix déjà présents dans le projet comprennent :
+Les fondations déjà présentes comprennent :
 
 - un coût bcrypt de `12` pour le hachage des mots de passe ;
 - des requêtes SQL paramétrées ;
 - des jetons JWT signés avec l'algorithme `HS256` ;
-- des jetons d'accès de courte durée ;
-- une révocation des jetons de rafraîchissement ;
+- des jetons d'accès valables 15 minutes ;
+- un mécanisme de révocation des jetons de rafraîchissement ;
 - des contraintes SQL sur les rôles et les statuts.
 
-Avant une utilisation en production, il faudra également :
+Avant toute utilisation en production, chaque API devra également :
 
 - utiliser un secret JWT long, aléatoire et stocké hors du dépôt ;
-- ne jamais enregistrer les jetons de rafraîchissement en clair, mais seulement leur empreinte ;
-- vérifier le statut et la date d'expiration des jetons en base ;
-- mettre en place une limitation du nombre de requêtes ;
-- utiliser HTTPS et des cookies `HttpOnly`, `Secure` et `SameSite` si les jetons sont transmis par cookie ;
+- enregistrer uniquement l'empreinte des jetons de rafraîchissement ;
+- vérifier leur statut et leur date d'expiration en base ;
+- limiter le nombre de requêtes sur les routes sensibles ;
+- utiliser HTTPS et des cookies `HttpOnly`, `Secure` et `SameSite` si nécessaire ;
 - journaliser les événements de sécurité sans exposer de données sensibles.
 
-## Limites actuelles
+## Limites actuelles du starter
 
-Les principaux points bloquant l'exécution du projet sont les suivants :
+Les points suivants empêchent encore une utilisation immédiate :
 
 1. aucun fichier d'entrée ni serveur HTTP n'est présent ;
 2. aucun script `start` ou `dev` n'est défini dans `package.json` ;
 3. aucun framework HTTP, tel qu'Express, n'est installé ;
-4. `utils/apiResponse.js` utilise une syntaxe d'export ES module alors que le projet est configuré en CommonJS ;
-5. la configuration de la base de données est incohérente avec `.env.example` ;
-6. le modèle utilisateur ne renvoie pas actuellement les données attendues par le service de connexion ;
+4. `utils/apiResponse.js` utilise une syntaxe ES module alors que le projet est configuré en CommonJS ;
+5. la configuration de la base est incohérente avec `.env.example` ;
+6. le modèle utilisateur ne renvoie pas les données attendues par le service de connexion ;
 7. la route de connexion n'est ni finalisée ni exportée ;
-8. le script `npm test` est encore le script d'exemple généré par npm.
+8. le script `npm test` est encore celui généré par défaut par npm.
 
-## Feuille de route recommandée
+## Feuille de route
 
-- [ ] Uniformiser tous les modules en CommonJS ou en ES modules.
-- [ ] Corriger et simplifier la configuration avec une variable `DATABASE_URL` unique.
-- [ ] Corriger les valeurs renvoyées par les modèles utilisateur et refresh token.
-- [ ] Ajouter le serveur HTTP et le routeur d'authentification.
-- [ ] Exposer les routes d'inscription, de connexion, de rafraîchissement et de déconnexion.
+### Priorité 1 — Rendre le starter exécutable
+
+- [ ] Uniformiser le projet en CommonJS ou en ES modules.
+- [ ] Remplacer la configuration actuelle par une variable `DATABASE_URL` cohérente.
+- [ ] Ajouter un serveur HTTP et les scripts `start` et `dev`.
+- [ ] Finaliser les modèles et les routes d'authentification.
+- [ ] Ajouter une route de contrôle telle que `GET /health`.
+
+### Priorité 2 — Fiabiliser la base commune
+
 - [ ] Ajouter une gestion centralisée des erreurs.
 - [ ] Hacher les jetons de rafraîchissement avant leur stockage.
-- [ ] Ajouter des tests unitaires et des tests d'intégration.
-- [ ] Documenter l'API avec OpenAPI.
-- [ ] Ajouter Docker et une intégration continue.
+- [ ] Ajouter les tests unitaires et les tests d'intégration.
+- [ ] Ajouter des migrations reproductibles pour PostgreSQL.
 
-## Tests
+### Priorité 3 — Faciliter la réutilisation
 
-Aucune suite de tests n'est encore disponible. La première couverture devrait cibler en priorité :
-
-- la validation des données d'inscription et de connexion ;
-- le hachage et la comparaison des mots de passe ;
-- la génération, la vérification, l'expiration et la rotation des JWT ;
-- l'authentification par Bearer token ;
-- les autorisations RBAC ;
-- les accès PostgreSQL et les contraintes du schéma.
+- [ ] Ajouter une documentation OpenAPI minimale.
+- [ ] Fournir Docker et Docker Compose pour l'environnement local.
+- [ ] Ajouter une intégration continue avec lint, tests et vérification du build.
+- [ ] Documenter une procédure de création d'une nouvelle API à partir du starter.
 
 ## Licence
 
-Le fichier `package.json` déclare actuellement la licence ISC. Un fichier `LICENSE` doit encore être ajouté au dépôt pour formaliser sa distribution.
+Le fichier `package.json` déclare actuellement la licence ISC. Un fichier `LICENSE` doit encore être ajouté pour formaliser la réutilisation du starter.
