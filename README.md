@@ -272,6 +272,23 @@ Les points suivants empêchent encore une utilisation immédiate :
 - [ ] Ajouter une intégration continue avec lint, tests et vérification du build.
 - [ ] Documenter une procédure de création d'une nouvelle API à partir du starter.
 
+## Contribution
+
+Les propositions d'amélioration sont les bienvenues.
+
+Pour contribuer :
+
+1. ouvrez une issue pour présenter la modification envisagée ;
+2. créez une branche dédiée ;
+3. ajoutez ou mettez à jour les tests concernés ;
+4. soumettez une pull request avec une description claire.
+
+Les contributions doivent rester génériques afin que le projet puisse servir de base à différentes API.
+
+## Auteur
+
+Développé et maintenu par [TyrYoxan](https://github.com/TyrYoxan).
+
 ## Licence
 
-Le fichier `package.json` déclare actuellement la licence ISC. Un fichier `LICENSE` doit encore être ajouté pour formaliser la réutilisation du starter.
+Ce projet est distribué sous licence ISC. Consultez le fichier [LICENSE](LICENSE) pour connaître les conditions d'utilisation, de modification et de distribution.
